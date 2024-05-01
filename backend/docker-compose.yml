@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: compose/node/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "4000-4001:4000"
+    env_file:
+      - ./envs/.env.development
+    deploy:
+      replicas: 2
+      placement:
+        constraints:
+          - node.role == worker
+    depends_on:
+      - db
+    networks:
+      - backend
+
+  db:
+    image: mysql:latest
+    ports:
+      - "3306:3306"
+    env_file:
+      - ./envs/.mysql.development
+    command:
+      - --authentication_policy=caching_sha2_password
+      - --init-file=/docker-entrypoint-initdb.d/init.sql
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - local_mysql_data:/var/lib/mysql
+
+    networks:
+      - backend
+    
+  nginx:
+    build:
+      context: .
+      dockerfile: compose/nginx/Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+    networks:
+      - backend
+
+
+volumes:
+  local_mysql_data: {}
+
+  
+networks:
+  backend:
+    driver: bridge
