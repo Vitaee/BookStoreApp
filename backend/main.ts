@@ -245,7 +245,7 @@ app.get('/api/customers/top-spenders/', async (req: Request, res: Response) => {
     const topSpenders = await Order.findAll({
       attributes: [
         'customer_id',
-        [sequelize.fn('SUM', sequelize.literal('`orderDetails`.`quantity` * `book`.`price`')), 'total_spent']      
+        [sequelize.fn('SUM', sequelize.literal('`orderDetails`.`quantity` * `orderDetails->book`.`price`')), 'total_spent']
       ],
       include: [
         {
@@ -267,8 +267,7 @@ app.get('/api/customers/top-spenders/', async (req: Request, res: Response) => {
       ],
       group: ['customer_id'],
       order: [[sequelize.literal('total_spent'), 'DESC']],
-      limit: limit,
-      offset: offset
+    
   });
 
   const totalPages = Math.ceil(topSpenders.length / limit);

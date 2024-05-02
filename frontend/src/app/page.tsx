@@ -22,8 +22,12 @@ interface BookDetail {
   title: string;
 }
 
+interface Customer { 
+  name: string;
+}
 
-type DataKey = 'books' | 'orders' | 'customers' | 'topSellingBooks';
+
+type DataKey = 'books' | 'orders' | 'customers' | 'topSellingBooks' | 'topSpenders';
 
 interface DataConfig {
   endpoint: string;
@@ -81,6 +85,14 @@ const dataConfig: Record<DataKey, DataConfig> = {
       { key: 'totalSold', header: 'Total Sold' }
     ]
   },
+  topSpenders: {
+    endpoint: 'customers/top-spenders',
+    columns: [
+      { key: 'customer_id', header: 'Customer ID' },
+      { key: 'total_spent', header: 'Total Spent'},
+      { key: 'name', header: 'Name', render: (  (data: Customer) => <span> {data?.name}</span>) },
+     ]
+  }
 };
 
 export default function Home() {
@@ -108,6 +120,7 @@ export default function Home() {
           <option value="topSellingBooks">Top Selling Books</option>
           <option value="orders">Orders</option>
           <option value="customers">Customers</option>
+          <option value="topSpenders">Top Spenders</option>
         </select>
       </div>
 

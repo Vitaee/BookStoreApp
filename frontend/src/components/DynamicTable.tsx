@@ -29,6 +29,7 @@ const DataTable: React.FC<DataTableProps> = ({ endpoint, columns }) => {
       setLoading(true);
 
       try {
+        console.log('Fetching data from:', endpoint);
         const url = `http://127.0.0.1/api/${endpoint}/?page=${currentPage}&limit=${itemsPerPage}`;
         const response = await fetch(url);
 
