@@ -1,97 +1,119 @@
-import Image from "next/image";
+/** @jsxImportSource react */
+'use client';
+
 import styles from "./page.module.css";
-import BooksTable from "@/components/BookTable";
+import DataTable from "@/components/DynamicTable";
+import React, { useState } from "react";
+
+interface OrderDetail {
+  bookTitle: string;
+  author: string;
+  price: number;
+  quantity: number;
+}
+
+interface TopSellingBook {
+  book_id: number;
+  totalSold: string; // If this should be an integer, consider converting it during fetch or in the backend
+  book: BookDetail
+}
+
+interface BookDetail {
+  title: string;
+}
+
+
+type DataKey = 'books' | 'orders' | 'customers' | 'topSellingBooks';
+
+interface DataConfig {
+  endpoint: string;
+  columns: {
+    key: string;
+    header: string;
+    render?: (data: any) => JSX.Element;
+  }[];
+}
+
+const dataConfig: Record<DataKey, DataConfig> = {
+  books: {
+    endpoint: 'books',
+    columns: [
+      { key: 'title', header: 'Title' },
+      { key: 'price', header: 'Price' }
+    ]
+  },
+  orders: {
+    endpoint: 'orders',
+    columns: [
+      { key: 'orderId', header: 'Order ID' },
+      { key: 'customer', header: 'Customer' },
+      {
+        key: 'orderDetails',
+        header: 'Order Details',
+        render: (orderDetails: OrderDetail[] | undefined) => (
+          <ul>
+            {orderDetails ? orderDetails.map((detail, index) => (
+              <li key={index}>
+                {`${detail.bookTitle} by ${detail.author} - $${detail.price} x ${detail.quantity}`}
+              </li>
+            )) : <li>No details available</li>}
+          </ul>
+        )
+      }
+    ]
+  },
+  customers: {
+    endpoint: 'customers',
+    columns: [
+      { key: 'name', header: 'Name' },
+      { key: 'email', header: 'Email' },
+      { key: 'address', header: 'Address' }
+    ]
+  },
+  topSellingBooks: {
+    endpoint: 'books/top-selling',
+    columns: [
+      {
+        key: 'book',
+        header: 'Book Title',
+        render: (data: BookDetail) => <span>{data?.title || 'No title available'}</span>
+      },
+      { key: 'totalSold', header: 'Total Sold' }
+    ]
+  },
+};
 
 export default function Home() {
+  const [selectedEndpoint, setSelectedEndpoint] = useState<DataKey>('books');
+
+  const handleSelectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedEndpoint(event.target.value as DataKey);
+  };
+
   return (
     <main className={styles.main}>
       <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
+        <p> Can İlgu <code className={styles.code}> - API Task Project</code></p>
       </div>
+
+      <div className="flex justify-center">
+        <label htmlFor="endpoint">Select an endpoint:</label>
+        <select value={selectedEndpoint} onChange={handleSelectChange}>
+          <option value="books">Books</option>
+          <option value="topSellingBooks">Top Selling Books</option>
+          <option value="orders">Orders</option>
+          <option value="customers">Customers</option>
+        </select>
+        </div>
 
       <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
+       
+     
+        <DataTable
+          endpoint={dataConfig[selectedEndpoint].endpoint}
+          columns={dataConfig[selectedEndpoint].columns}
         />
       </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-      <BooksTable />
     </main>
   );
 }

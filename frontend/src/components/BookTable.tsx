@@ -15,7 +15,7 @@ const BooksTable = () => {
   useEffect(() => {
     const fetchBooks = async () => {
       try {
-        const response = await fetch('http://127.0.0.1/books');
+        const response = await fetch('http://127.0.0.1/books/');
         if (!response.ok) {
           throw new Error('Network response was not ok');
         }

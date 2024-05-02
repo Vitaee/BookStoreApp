@@ -5,12 +5,15 @@ import { Author } from './src/models/Author';
 import { Book } from './src/models/Book';
 import { OrderDetails } from './src/models/OrderDetails';
 import { Order } from './src/models/Order';
+import { Customer } from './src/models/Customer';
 
 
 const port = parseInt(env.getEnvironmentVariable('APP_PORT') || '4000');
 App.start(port);
 
 const app = App.getApp();
+const sequelize = App.getDb();
+
 
 app.get('/', (req: Request, res: Response) => {
   res.send(`Server is running on port ${port}!`);
@@ -19,12 +22,7 @@ app.get('/', (req: Request, res: Response) => {
 //app.use("/api/v1/",userRouter)
 
 
-
-
-const sequelize = App.getDb();
-
-
-app.get('/books', async (req: Request, res: Response) => {
+app.get('/api/books/', async (req: Request, res: Response) => {
   try {
     const books = await Book.findAll({
       attributes: ['title', 'price']
@@ -35,8 +33,7 @@ app.get('/books', async (req: Request, res: Response) => {
   }
 });
 
-
-app.get('/books/author/:authorId/', async (req:Request, res:Response) => {
+app.get('/api/books/author/:authorId/', async (req:Request, res:Response) => {
   try {
     const books = await Book.findAll({
       where: { author_id: req.params.authorId },
@@ -48,7 +45,7 @@ app.get('/books/author/:authorId/', async (req:Request, res:Response) => {
   }
 });
 
-app.get('/books/sold/total/', async (req, res) => {
+app.get('/api/books/sold/total/', async (req, res) => {
   try {
     const totalBooksSold = await OrderDetails.sum('quantity');
     res.send({ totalBooksSold });
@@ -57,8 +54,68 @@ app.get('/books/sold/total/', async (req, res) => {
   }
 });
 
+app.get('/api/books/top-selling/', async (req:Request, res:Response) => {
+  try {
+    const topSellingBooks = await OrderDetails.findAll({
+      include: [{
+        model: Book,
+        attributes: ['title']
+      }],
+      attributes: [
+        'book_id',
+        [sequelize.fn('sum', sequelize.col('OrderDetails.quantity')), 'totalSold']
+      ],
+      group: ['book_id'],
+      order: [[sequelize.fn('sum', sequelize.col('OrderDetails.quantity')), 'DESC']],
+      limit: 5
+    });
+    res.send(topSellingBooks);
+  } catch (error: any) {
+    res.status(500).send(error.message);
+  }
+});
 
-app.get('/orders/revenue/total/', async (req:Request, res:Response) => {
+
+
+app.get('/api/orders/', async (req: Request, res: Response) => {
+  try {
+    const orders = await Order.findAll({
+      include: [
+        {
+          model: Customer,
+          attributes: ['name', 'email', 'address'] 
+        },
+        {
+          model: OrderDetails,
+          include: [{
+            model: Book,
+            include: [Author]
+          }]
+        }
+      ]
+    });
+
+     // Simplifying the response to focus on each order with details
+     const responseData = orders.map(order => ({
+      orderId: order.order_id,
+      customer: order.customer.name,
+      orderDetails: order.orderDetails.map(detail => ({
+        bookTitle: detail.book.title,
+        author: detail.book.author.name,
+        price: detail.book.price,
+        quantity: detail.quantity
+      }))
+    }));
+
+   
+    res.status(200).json(responseData);
+  } catch (error) {
+    console.error('Failed to retrieve orders:', error);
+    res.status(500).send('Server error while retrieving orders.');
+  }
+});
+
+app.get('/api/orders/revenue/total/', async (req:Request, res:Response) => {
   try {
     const totalRevenue = await OrderDetails.findAll({
       include: [{
@@ -82,50 +139,48 @@ app.get('/orders/revenue/total/', async (req:Request, res:Response) => {
 });
 
 
-app.get('/books/top-selling/', async (req:Request, res:Response) => {
+
+app.get('/api/customers/', async (req: Request, res: Response) => {
   try {
-    const topSellingBooks = await OrderDetails.findAll({
-      include: [{
-        model: Book,
-        attributes: ['title']
-      }],
-      attributes: [
-        'book_id',
-        [sequelize.fn('sum', sequelize.col('OrderDetails.quantity')), 'totalSold']
-      ],
-      group: ['book_id'],
-      order: [[sequelize.fn('sum', sequelize.col('OrderDetails.quantity')), 'DESC']],
-      limit: 5
-    });
-    res.send(topSellingBooks);
-  } catch (error: any) {
-    res.status(500).send(error.message);
+    const customers = await Customer.findAll();
+    res.status(200).json(customers);
+  } catch (error) {
+    console.error('Failed to retrieve customers:', error);
+    res.status(500).send('Server error while retrieving customers.');
   }
 });
 
-
-app.get('/customers/top-spenders', async (req, res) => {
+app.get('/api/customers/top-spenders/', async (req: Request, res: Response) => {
   try {
     const topSpenders = await Order.findAll({
       attributes: [
-      'customer_id',
-      [sequelize.literal('SUM(`OrderDetails`.`quantity` * `Books`.`price`)'), 'total_spent']
-      ],
-      include: [
+    'customer_id',
+    [sequelize.fn('SUM', sequelize.literal('`orderDetails`.`quantity` * `orderDetails->book`.`price`')), 'total_spent']
+    ],
+    include: [
       {
-      model: OrderDetails,
-      attributes: []
+        model: OrderDetails,
+        attributes: [], // Bu sorguda OrderDetails'den herhangi bir sütun çekmeye gerek yok
+        include: [
+          {
+            model: Book,
+            as: 'book', // Bu, ilişkisel yolda kullanılan takma adı doğru belirtir
+            attributes: [] // Bu sorguda Book'tan herhangi bir sütun çekmeye gerek yok
+          }
+        ]
       },
       {
-      model: Book,
-      attributes: []
+        model: Customer,
+        attributes: ['name']
       }
-      ],
-      group: ['customer_id'],
-      order: [[sequelize.literal('total_spent'), 'DESC']],
-      limit: 5 });
+    ],
+    group: ['customer_id'],
+    order: [[sequelize.literal('total_spent'), 'DESC']]
+  });
+        
     res.json(topSpenders);
   } catch (error: any) {
+    console.log(error.message)
     res.status(500).send(error.message);
   }
 });
