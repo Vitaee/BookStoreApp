@@ -91,29 +91,32 @@ export default function Home() {
   };
 
   return (
-    <main className={styles.main}>
+    <main className="max-h-screen bg-gray-100 p-5">
       <div className={styles.description}>
-        <p> Can İlgu <code className={styles.code}> - API Task Project</code></p>
+        <p>Can İlgu<code className={styles.code}> - API Task Project</code></p>
       </div>
 
-      <div className="flex justify-center">
-        <label htmlFor="endpoint">Select an endpoint:</label>
-        <select value={selectedEndpoint} onChange={handleSelectChange}>
+      <div className="flex flex-col sm:flex-row justify-center items-center gap-4 my-4 mt-2 mb-2">
+        <label htmlFor="endpoint" className="font-medium">Select an endpoint:</label>
+        <select
+          id="endpoint"
+          className="mt-1 block w-full lg:w-64 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          value={selectedEndpoint}
+          onChange={handleSelectChange}
+        >
           <option value="books">Books</option>
           <option value="topSellingBooks">Top Selling Books</option>
           <option value="orders">Orders</option>
           <option value="customers">Customers</option>
         </select>
-        </div>
-
-      <div className={styles.center}>
-       
-     
-        <DataTable
-          endpoint={dataConfig[selectedEndpoint].endpoint}
-          columns={dataConfig[selectedEndpoint].columns}
-        />
       </div>
+
+      <DataTable
+        endpoint={dataConfig[selectedEndpoint].endpoint}
+        columns={dataConfig[selectedEndpoint].columns}
+      />
+
+      
     </main>
   );
 }
